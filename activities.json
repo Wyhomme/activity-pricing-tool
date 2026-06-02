@@ -1,17 +1,12 @@
 [
   {
     "type": "秒杀",
-    "maxDiscountAmount": 20,
+    "maxDiscountAmount": 5,
     "sensitiveAllowed": false
   },
   {
     "type": "百补",
-    "maxDiscountAmount": 25,
+    "maxDiscountAmount": 5,
     "sensitiveAllowed": false
-  },
-  {
-    "type": "日常活动",
-    "maxDiscountAmount": 10,
-    "sensitiveAllowed": true
   }
 ]
