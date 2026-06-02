@@ -1,0 +1,34 @@
+[
+  {
+    "sku": "PS-GREEN-150",
+    "name": "蓬松水绿瓶150ml",
+    "category": "蓬松水",
+    "sensitive": true,
+    "movable": false,
+    "dailyPrice": 79
+  },
+  {
+    "sku": "PS-RED-150",
+    "name": "蓬松水红瓶150ml",
+    "category": "蓬松水",
+    "sensitive": true,
+    "movable": false,
+    "dailyPrice": 79
+  },
+  {
+    "sku": "SHAMPOO-FRESH",
+    "name": "洗发水清爽款",
+    "category": "洗发水",
+    "sensitive": false,
+    "movable": true,
+    "dailyPrice": 49
+  },
+  {
+    "sku": "HAIR-OIL-01",
+    "name": "护发精油经典款",
+    "category": "护发精油",
+    "sensitive": false,
+    "movable": true,
+    "dailyPrice": 69
+  }
+]
