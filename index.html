@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>活动提报价判断工具</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --surface: #ffffff;
+      --surface-soft: #f3f0ec;
+      --border: #d9d4cc;
+      --text: #28251d;
+      --muted: #73706b;
+      --primary: #01696f;
+      --primary-soft: #d8ebea;
+      --success: #2f6a1f;
+      --success-soft: #d8e8cf;
+      --error: #a12c7b;
+      --error-soft: #efd7e4;
+      --warn: #9a5a12;
+      --warn-soft: #f2e3d1;
+      --shadow: 0 10px 30px rgba(40, 37, 29, 0.08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1320px; margin: 0 auto; padding: 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .hero { padding: 24px; margin-bottom: 18px; }
+    h1, h2, h3, h4, p { margin: 0; }
+    h1 { font-size: 30px; margin-bottom: 8px; }
+    h2 { font-size: 22px; margin-bottom: 14px; }
+    h3 { font-size: 18px; margin-bottom: 12px; }
+    .muted { color: var(--muted); }
+    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .tab { padding: 10px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-weight: 700; }
+    .tab.active { background: var(--primary-soft); color: var(--primary); border-color: transparent; }
+    .pane { display: none; }
+    .pane.active { display: block; }
+    .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .section { padding: 22px; margin-bottom: 18px; }
+    .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .field label { font-size: 14px; font-weight: 700; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px;
+      background: var(--surface); color: var(--text); font-size: 14px;
+    }
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    button { border: none; border-radius: 12px; padding: 12px 16px; cursor: pointer; font-weight: 700; font-size: 14px; }
+    .primary { background: var(--primary); color: #fff; }
+    .secondary { background: var(--surface-soft); color: var(--text); border: 1px solid var(--border); }
+    .pill { display: inline-flex; padding: 8px 12px; border-radius: 999px; font-weight: 800; font-size: 14px; margin-bottom: 14px; }
+    .pill.ok { background: var(--success-soft); color: var(--success); }
+    .pill.err { background: var(--error-soft); color: var(--error); }
+    .pill.warn { background: var(--warn-soft); color: var(--warn); }
+    .kv { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .kv:last-child { border-bottom: none; }
+    .line-item-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+    .line-item-box { background: var(--surface-soft); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .code { background: var(--surface-soft); border-radius: 12px; padding: 12px; font-size: 13px; overflow: auto; }
+    .notice { padding: 12px 14px; border-radius: 12px; background: var(--primary-soft); color: var(--primary); margin-bottom: 14px; font-size: 14px; }
+    @media (max-width: 980px) {
+      .grid, .two-col { grid-template-columns: 1fr; }
+      .kv { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card hero">
+      <h1>活动提报价判断工具</h1>
+      <p class="muted">GitHub Pages 可直接发布的完整静态网站版。商品明细与活动规则已拆分为独立 JSON 文件，后续只需要改配置文件即可更新规则。</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="judge">在线判断</button>
+      <button class="tab" data-tab="deploy">规则维护</button>
+    </div>
+
+    <section id="pane-judge" class="pane active">
+      <div class="grid">
+        <div>
+          <div class="card section">
+            <h2>提报录入</h2>
+            <div class="two-col">
+              <div class="field">
+                <label>活动类型</label>
+                <select id="activityType"></select>
+              </div>
+              <div class="field">
+                <label>拟提报活动价</label>
+                <input id="proposedPrice" type="number" step="0.01" placeholder="例如 99" />
+              </div>
+            </div>
+            <div class="two-col">
+              <div class="field">
+                <label>想提报活动的SKU日常售价</label>
+                <input id="knownDailyPrice" type="number" step="0.01" placeholder="例如 129" />
+              </div>
+              <div class="field">
+                <label>活动商品名称 / 组合名称（可选）</label>
+                <input id="bundleName" type="text" placeholder="例如 绿瓶蓬松水+洗发水组合" />
+              </div>
+            </div>
+
+            <div class="line-item-box">
+              <h3>组合商品选择</h3>
+              <div class="two-col">
+                <div class="field">
+                  <label>组合商品数量</label>
+                  <select id="bundleCount">
+                    <option value="1">1个产品</option>
+                    <option value="2">2个产品</option>
+                    <option value="3">3个产品</option>
+                    <option value="4">4个产品</option>
+                    <option value="5">5个产品</option>
+                  </select>
+                </div>
+              </div>
+              <div id="lineItems"></div>
+              <div class="btns">
+                <button class="secondary" id="fillDemoBtn" type="button">填入演示案例</button>
+                <button class="secondary" id="clearJudgeBtn" type="button">清空录入</button>
+              </div>
+            </div>
+
+            <div class="btns">
+              <button class="primary" id="judgeBtn" type="button">开始判断</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card section">
+            <h2>判断结果</h2>
+            <div id="resultStatus" class="pill warn">等待判断</div>
+            <div class="kv"><div>系统结论</div><div id="resultHeadline">请先录入信息并点击开始判断。</div></div>
+            <div class="kv"><div>组合结构</div><div id="resultStructure">—</div></div>
+            <div class="kv"><div>敏感判断</div><div id="resultSensitive">—</div></div>
+            <div class="kv"><div>填报日常售价</div><div id="resultDailyPrice">—</div></div>
+            <div class="kv"><div>活动底价底线</div><div id="resultFloor">—</div></div>
+            <div class="kv"><div>拟提报价</div><div id="resultProposed">—</div></div>
+            <div class="kv"><div>组合明细</div><div id="resultStructureItems">—</div></div>
+            <div class="kv"><div>命中规则</div><div id="resultRule">—</div></div>
+            <div class="kv"><div>原因说明</div><div id="resultReason">—</div></div>
+            <div class="kv"><div>建议动作</div><div id="resultAction">—</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pane-deploy" class="pane">
+      <div class="card section">
+        <h2>规则维护方式</h2>
+        <div class="notice">现在支持导入一个包含 2 个 sheet 的 Excel 文件，自动读取“商品规则”和“活动规则”两个工作表，校验表头后生成 products.json 和 activities.json 下载文件。</div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>导入总规则表（Excel）</label>
+          <input id="combinedRuleFile" type="file" accept=".xlsx,.xls" />
+          <div class="hint">请在同一个 Excel 中放置两个 sheet：商品规则、活动规则。</div>
+        </div>
+        <div class="btns" style="margin-bottom:14px;">
+          <button class="primary" id="generateJsonBtn" type="button">生成 JSON 文件</button>
+          <button class="secondary" id="downloadProductsBtn" type="button">下载 products.json</button>
+          <button class="secondary" id="downloadActivitiesBtn" type="button">下载 activities.json</button>
+        </div>
+        <div id="importFeedback" class="hint" style="margin-bottom:10px;">尚未导入表格。</div>
+        <div id="headerValidation" class="hint" style="margin-bottom:14px;"></div>
+        <div class="two-col" style="margin-bottom:14px;">
+          <div>
+            <h3 style="margin-bottom:8px;">products.json 预览</h3>
+            <div id="productsPreview" class="code" style="min-height:180px;"></div>
+          </div>
+          <div>
+            <h3 style="margin-bottom:8px;">activities.json 预览</h3>
+            <div id="activitiesPreview" class="code" style="min-height:180px;"></div>
+          </div>
+        </div>
+        <div class="code">
+products.json：维护商品清单<br>
+- sku：商品编码<br>
+- name：商品名称<br>
+- category：品类<br>
+- sensitive：是否敏感品<br>
+- movable：是否可动价<br>
+- dailyPrice：默认日常售价（当前判断页不强依赖）<br><br>
+activities.json：维护活动规则<br>
+- type：活动类型<br>
+- maxDiscountAmount：最高可降金额<br>
+- sensitiveAllowed：敏感品是否允许参加
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    let products = [];
+    let activities = [];
+    let generatedProducts = null;
+    let generatedActivities = null;
+
+    const activityTypeEl = document.getElementById('activityType');
+    const proposedPriceEl = document.getElementById('proposedPrice');
+    const knownDailyPriceEl = document.getElementById('knownDailyPrice');
+    const bundleCountEl = document.getElementById('bundleCount');
+    const lineItemsEl = document.getElementById('lineItems');
+
+    function normalizeBoolean(value) {
+      if (typeof value === 'boolean') return value;
+      const text = String(value ?? '').trim().toLowerCase();
+      return ['true', '1', 'yes', 'y', '是'].includes(text);
+    }
+
+    function normalizeNumber(value) {
+      const num = Number(String(value ?? '').replace(/,/g, '').trim());
+      return Number.isNaN(num) ? null : num;
+    }
+
+    function parseWorkbookFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const data = e.target.result;
+            const workbook = XLSX.read(data, { type: 'array' });
+            resolve(workbook);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function downloadJson(filename, data) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function setImportFeedback(text) {
+      document.getElementById('importFeedback').textContent = text;
+    }
+    function setHeaderValidation(text, isError = false) {
+      const el = document.getElementById('headerValidation');
+      el.textContent = text;
+      el.style.color = isError ? '#a12c7b' : '#73706b';
+    }
+
+    function getSheetRows(workbook, preferredNames) {
+      const name = workbook.SheetNames.find(n => preferredNames.includes(String(n).trim()));
+      if (!name) return { found: false, name: null, rows: [] };
+      const sheet = workbook.Sheets[name];
+      return { found: true, name, rows: XLSX.utils.sheet_to_json(sheet, { defval: '' }) };
+    }
+
+    function validateHeaders(rows, requiredHeaders) {
+      const first = rows[0] || {};
+      const actualHeaders = Object.keys(first);
+      const missing = requiredHeaders.filter(h => !actualHeaders.includes(h));
+      return { actualHeaders, missing, valid: missing.length === 0 };
+    }
+
+
+    function updateJsonPreviews() {
+      document.getElementById('productsPreview').textContent = generatedProducts ? JSON.stringify(generatedProducts, null, 2) : '尚未生成';
+      document.getElementById('activitiesPreview').textContent = generatedActivities ? JSON.stringify(generatedActivities, null, 2) : '尚未生成';
+    }
+
+    async function generateJsonFromSheets() {
+      const combinedFile = document.getElementById('combinedRuleFile').files[0];
+      if (!combinedFile) {
+        setImportFeedback('请先导入总规则表。');
+        setHeaderValidation('');
+        return;
+      }
+      try {
+        const workbook = await parseWorkbookFile(combinedFile);
+        const productSheet = getSheetRows(workbook, ['商品规则', 'products', 'Products', '商品规则模板']);
+        const activitySheet = getSheetRows(workbook, ['活动规则', 'activities', 'Activities', '活动规则模板']);
+
+        if (!productSheet.found || !activitySheet.found) {
+          const missingSheets = [!productSheet.found ? '商品规则' : null, !activitySheet.found ? '活动规则' : null].filter(Boolean);
+          setImportFeedback('生成失败：缺少工作表 - ' + missingSheets.join('、'));
+          setHeaderValidation('请确认 Excel 中包含名为“商品规则”和“活动规则”的两个 sheet。', true);
+          return;
+        }
+
+        const requiredProductHeaders = ['sku', 'name', 'category', 'sensitive', 'movable', 'dailyPrice'];
+        const requiredActivityHeaders = ['type', 'maxDiscountAmount', 'sensitiveAllowed'];
+        const productCheck = validateHeaders(productSheet.rows, requiredProductHeaders);
+        const activityCheck = validateHeaders(activitySheet.rows, requiredActivityHeaders);
+
+        if (!productCheck.valid || !activityCheck.valid) {
+          const messages = [];
+          if (!productCheck.valid) messages.push('商品规则 sheet 缺少字段：' + productCheck.missing.join('、'));
+          if (!activityCheck.valid) messages.push('活动规则 sheet 缺少字段：' + activityCheck.missing.join('、'));
+          setImportFeedback('生成失败：表头校验未通过。');
+          setHeaderValidation(messages.join('；'), true);
+          updateJsonPreviews();
+      setHeaderValidation('');
+          return;
+        }
+
+        generatedProducts = productSheet.rows.filter(r => String(r.sku || '').trim()).map(r => ({
+          sku: String(r.sku || '').trim(),
+          name: String(r.name || '').trim(),
+          category: String(r.category || '').trim(),
+          sensitive: normalizeBoolean(r.sensitive),
+          movable: normalizeBoolean(r.movable),
+          dailyPrice: normalizeNumber(r.dailyPrice)
+        }));
+
+        generatedActivities = activitySheet.rows.filter(r => String(r.type || '').trim()).map(r => ({
+          type: String(r.type || '').trim(),
+          maxDiscountAmount: normalizeNumber(r.maxDiscountAmount),
+          sensitiveAllowed: normalizeBoolean(r.sensitiveAllowed)
+        }));
+
+        updateJsonPreviews();
+      setHeaderValidation('');
+        setImportFeedback('JSON 已生成。请下载后覆盖上传到 GitHub 仓库。');
+        setHeaderValidation('表头校验通过：商品规则与活动规则 sheet 字段完整。');
+      } catch (err) {
+        setImportFeedback('生成失败：' + err.message);
+        setHeaderValidation('');
+      }
+    }
+
+    function fillDemoCase() {
+      bundleCountEl.value = '2';
+      renderLineItems(2, ['PS-GREEN-150', 'SHAMPOO-FRESH']);
+      document.getElementById('bundleName').value = '绿瓶蓬松水+洗发水组合';
+      knownDailyPriceEl.value = 129;
+      proposedPriceEl.value = 99;
+      if (activities[0]) activityTypeEl.value = activities[0].type;
+    }
+
+    function clearJudgeForm() {
+      bundleCountEl.value = '1';
+      renderLineItems(1, [products[0]?.sku]);
+      document.getElementById('bundleName').value = '';
+      knownDailyPriceEl.value = '';
+      proposedPriceEl.value = '';
+      setResult('warn', '请先录入信息并点击开始判断。', '—', '—', null, null, '—', '—', '等待输入', '等待输入', '可先点击演示案例查看效果。');
+    }
+
+    function initPage() {
+      refreshActivityOptions();
+      renderLineItems(1, [products[0]?.sku]);
+      clearJudgeForm();
+      document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
+      bundleCountEl.addEventListener('change', rerenderLineItemsOnly);
+      document.getElementById('fillDemoBtn').addEventListener('click', fillDemoCase);
+      document.getElementById('clearJudgeBtn').addEventListener('click', clearJudgeForm);
+      document.getElementById('judgeBtn').addEventListener('click', judge);
+      document.getElementById('generateJsonBtn').addEventListener('click', generateJsonFromSheets);
+      document.getElementById('downloadProductsBtn').addEventListener('click', () => { if (generatedProducts) downloadJson('products.json', generatedProducts); else setImportFeedback('请先生成 products.json。'); });
+      document.getElementById('downloadActivitiesBtn').addEventListener('click', () => { if (generatedActivities) downloadJson('activities.json', generatedActivities); else setImportFeedback('请先生成 activities.json。'); });
+      updateJsonPreviews();
+      setHeaderValidation('');
+    }
+
+    loadConfig().catch(err => {
+      document.body.innerHTML = '<div style="padding:24px;font-family:sans-serif;">配置文件加载失败，请确认 products.json 和 activities.json 已上传到同一目录。<br><br>' + err.message + '</div>';
+    });
+  </script>
+</body>
+</html>
